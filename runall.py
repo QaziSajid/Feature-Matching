@@ -20,8 +20,8 @@ FLANN_INDEX_KDTREE = 0
 index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
 search_params = dict(checks = 100)
 flann = cv2.FlannBasedMatcher(index_params, search_params)
-stds = 1
-stdd = 1
+stdpix = 500
+stdval = 0.1
 cap = cv2.VideoCapture(camindex)
 if not cap.isOpened():
     print("Camera not found at index ", camindex)
@@ -93,8 +93,10 @@ def quadsize(corners):  #returns longest diagonal
     diag2 = eucliddist(corners[1][0], corners[3][0])
     return max(diag1, diag2)
 
-def triangulate(quantity, currs):
-    return (1,1)
+def triangulate(quantity, currpix):
+    qx = quantity[0]*stdval/stdpix
+    qy = quantity[1]*stdval/stdpix
+    return (qx,qy)
 
 def reqacc (rvel , cdist, taracc):
     if(cdist[0]!=0):
@@ -169,10 +171,9 @@ def findmatch(im2):
         dst = cv2.perspectiveTransform(pts,h)
         cen = quadcentroid(dst)
         qsz = quadsize(dst)
-        iMatches = cv2.drawMatches(im1, keypoints1, im2, keypoints2, matches, None)
-        #cv2.polylines(im2,[np.int32(dst)],True,(255, 255, 0),3, cv2.LINE_AA)
         if(fcount%10==0):
             #lgdev = 0.6
+            iMatches = cv2.drawMatches(im1, keypoints1, im2, keypoints2, matches, None)
             cv2.imwrite('frames/frame'+str(fcount)+'.jpg', iMatches)
         v = validate(dst)
         if v==3:
@@ -269,6 +270,6 @@ except KeyboardInterrupt:
     print("Writing to log file")
     with open('stats.txt', 'a') as logfile:
         #total frames, Accuracy %, Buffered, Total detected, Total accurate, Actual accurate, Undetected
-        logfile.write(str(fcount)+'\t\t'+str((accurate*100//detected))+'\t\t'+str(drops)+'\t'+str(detected)+'\t'+str(accurate)+'\t'+str(accurate-drops)+'\t'+str(fcount-detected))
+        logfile.write(str(fcount)+'\t\t'+str((accurate*100//detected))+'\t\t'+str(drops)+'\t'+str(detected)+'\t'+str(accurate)+'\t'+str(accurate-drops)+'\t'+str(fcount-detected)+'\n')
     print("Exiting...")
     exit()
